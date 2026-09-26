@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "feat/issue-1695-response-envelope",
+    "feat/issue-1696-audit-cleanup",
+    "feat/issue-1697-config-validation",
+    "feat/issue-1698-pagination-consolidation",
+    "main"
+  ],
+  "parent": {
+    "feat/issue-1695-response-envelope": "main",
+    "feat/issue-1696-audit-cleanup": "main",
+    "feat/issue-1697-config-validation": "main",
+    "feat/issue-1698-pagination-consolidation": "main",
+    "main": null
+  },
+  "order": [
+    "main",
+    "feat/issue-1695-response-envelope",
+    "feat/issue-1696-audit-cleanup",
+    "feat/issue-1697-config-validation",
+    "feat/issue-1698-pagination-consolidation"
+  ]
+}
