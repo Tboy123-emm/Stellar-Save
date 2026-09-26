@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node api.js && vite",
+    "build": "node api.js && tsc -b && vite build",
     "build:analyze": "tsc -b && vite build && open dist/stats.html",
     "size": "node scripts/check-bundle-size.mjs",
     "size:update": "node scripts/check-bundle-size.mjs --update",
