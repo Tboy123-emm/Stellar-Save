@@ -1,11 +1,10 @@
-
-
 import { randomBytes } from 'crypto';
 
 import { Router } from 'express';
 
 import { config } from '../config';
 import { AppError } from '../lib/errors';
+import { parseOffsetParams, paginateArray } from '../lib/pagination';
 import { logger } from '../logger';
 import { ValidationMiddleware } from '../middleware/validation';
 import { groupInvitationSchema } from '../middleware/validation.schemas';
@@ -84,6 +83,7 @@ export function createV2Router(services: V1Services): Router {
         const joinToken = randomBytes(32).toString('hex');
 
         // Persist invitation in DB
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const invitation = await (prisma as any).groupInvitation.create({
           data: {
             groupId,
@@ -103,15 +103,18 @@ export function createV2Router(services: V1Services): Router {
         const templateKey = 'email_group_invitation';
         const subject = 'You are invited to join {{groupName}}';
 
+        const emailData = {
+          userName: email,
+          groupName,
+          joinLink,
+          creatorUserId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
+
         await notificationService.sendEmail(
           email,
           templateKey,
-          {
-            userName: email,
-            groupName,
-            joinLink,
-            creatorUserId,
-          } as any,
+          emailData,
           subject.replace('{{groupName}}', groupName)
         );
 
@@ -122,27 +125,23 @@ export function createV2Router(services: V1Services): Router {
             joinLink,
           })
         );
-      } catch (err: any) {
-        logger.error('Failed to send group invitation', { error: err?.message || String(err) });
+      } catch (err: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const error = err as any;
+        logger.error('Failed to send group invitation', {
+          error: error?.message || String(err),
+        });
         next(new AppError('GROUP_INVITATION_FAILED', 'Failed to send invitation', 500));
       }
     }
   );
 
-  // Backup list — v2 adds pagination
+  // Backup list — v2 now uses shared pagination utility with offset/limit
   router.get('/backup', (req: Request, res: Response) => {
-    const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit as string) || 20);
-    const all = backupService.listJobs();
-    const start = (page - 1) * limit;
-    res.json(
-      migrateV1ToV2({
-        data: all.slice(start, start + limit),
-        total: all.length,
-        page,
-        limit,
-      })
-    );
+    const pageParams = parseOffsetParams(req.query, { limit: 20 });
+    const allJobs = backupService.listJobs();
+    const result = paginateArray(allJobs, pageParams);
+    res.json(migrateV1ToV2(result));
   });
 
   // All other v2 routes are stubs — return 501 with migration hint
